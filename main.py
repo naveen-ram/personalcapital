@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta
+import calendar
 
 # Python 2 and 3 compatibility
 if hasattr(__builtins__, 'raw_input'):
@@ -55,8 +56,8 @@ def main():
     try:
         pc.login(email, password)
     except RequireTwoFactorException:
-        pc.two_factor_challenge(TwoFactorVerificationModeEnum.SMS)
-        pc.two_factor_authenticate(TwoFactorVerificationModeEnum.SMS, input('code: '))
+        pc.two_factor_challenge(TwoFactorVerificationModeEnum.EMAIL)
+        pc.two_factor_authenticate(TwoFactorVerificationModeEnum.EMAIL, input('code: '))
         pc.authenticate_password(password)
 
     accounts_response = pc.fetch('/newaccount/getAccounts')
@@ -64,8 +65,8 @@ def main():
     now = datetime.now()
     date_format = '%Y-%m-%d'
     days = 90
-    start_date = (now - (timedelta(days=days+1))).strftime(date_format)
-    end_date = (now - (timedelta(days=1))).strftime(date_format)
+    start_date = datetime(now.year, now.month-1, 1).strftime(date_format)
+    end_date = datetime(now.year, now.month-1, calendar.monthrange(now.year, now.month-1)[1]).strftime(date_format)
     transactions_response = pc.fetch('/transaction/getUserTransactions', {
         'sort_cols': 'transactionTime',
         'sort_rev': 'true',
@@ -78,10 +79,10 @@ def main():
     pc.save_session()
 
     accounts = accounts_response.json()['spData']
-    print('Networth: {0}'.format(accounts['networth']))
 
     transactions = transactions_response.json()['spData']
-    print('Number of transactions between {0} and {1}: {2}'.format(transactions['startDate'], transactions['endDate'], len(transactions['transactions'])))
+    
+    return accounts, transactions
 
 if __name__ == '__main__':
     main()
